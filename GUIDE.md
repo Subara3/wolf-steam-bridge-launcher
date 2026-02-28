@@ -27,16 +27,18 @@
 ウディタは C++ や DLL を直接呼べません。
 そこで **「テキストファイルを介してやり取りする」** という方法を使います。
 
-```
-  Game.exe (ウディタ製ゲーム)
-       |
-       |  steam_cmd/ にテキストファイルを書き出し
-       v
-  WOLF-Steam-Bridge-GUI.exe
-       |
-       |  Steam API で実績解除・統計記録
-       v
-     Steam
+```mermaid
+flowchart TD
+    A["Game.exe\n(ウディタ製ゲーム)"]
+    B["WOLF-Steam-Bridge-GUI.exe"]
+    C["Steam"]
+
+    A -- "steam_cmd/ に\nテキストファイルを書き出し" --> B
+    B -- "Steam API で\n実績解除・統計記録" --> C
+
+    style A fill:#4a6fa5,color:#fff,stroke:#2d4a7a
+    style B fill:#e07b39,color:#fff,stroke:#b5612b
+    style C fill:#1b2838,color:#c7d5e0,stroke:#2a475e
 ```
 
 1. ウディタが `steam_cmd/` フォルダにテキストファイルを置く
