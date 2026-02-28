@@ -439,6 +439,17 @@ class App:
         self.log_text.tag_configure("dryrun", foreground="#0066CC")
         self.log_text.tag_configure("normal", foreground="#000000")
 
+    # -------------------------------------------------------- thread-safe GUI helpers
+
+    def _safe_after(self, callback, *args):
+        """Schedule callback on the main thread, silently ignored during shutdown."""
+        if self._closing:
+            return
+        try:
+            self.root.after(0, callback, *args)
+        except tk.TclError:
+            pass
+
     # -------------------------------------------------------- logging (thread-safe)
 
     def log(self, msg: str):
@@ -450,13 +461,8 @@ class App:
                 f.write(line)
         except Exception:
             pass
-        # GUI update via root.after for thread safety
-        if self._closing:
-            return
-        try:
-            self.root.after(0, self._append_log, line, msg)
-        except tk.TclError:
-            pass
+        # GUI update via main thread
+        self._safe_after(self._append_log, line, msg)
 
     def _append_log(self, line: str, raw_msg: str):
         # Determine tag
@@ -611,7 +617,7 @@ class App:
             ach_id = parts[1]
             ok = self.steam.unlock(ach_id)
             if ok:
-                self.root.after(0, lambda: Toast(self.root, f"Achievement unlocked!\n{ach_id}"))
+                self._safe_after(lambda: Toast(self.root, f"Achievement unlocked!\n{ach_id}"))
 
         elif cmd == "clear" and len(parts) >= 2:
             self.steam.clear(parts[1])
@@ -643,7 +649,7 @@ class App:
 
         def _do():
             achs = self.steam.get_all_achievements()
-            self.root.after(0, self._ach_populate, achs)
+            self._safe_after(self._ach_populate, achs)
 
         threading.Thread(target=_do, daemon=True).start()
 
@@ -670,7 +676,7 @@ class App:
                     if self.steam.clear(name):
                         count += 1
             self.log(f"Clear All done: {count} achievements cleared")
-            self.root.after(0, self._ach_refresh)
+            self._safe_after(self._ach_refresh)
 
         threading.Thread(target=_do, daemon=True).start()
 
@@ -695,7 +701,7 @@ class App:
         def _do():
             ok = self.steam.unlock(ach_id)
             if ok:
-                self.root.after(0, lambda: Toast(self.root, f"Achievement unlocked!\n{ach_id}"))
+                self._safe_after(lambda: Toast(self.root, f"Achievement unlocked!\n{ach_id}"))
 
         threading.Thread(target=_do, daemon=True).start()
 
@@ -742,7 +748,7 @@ class App:
 
         def _do():
             v = self.steam.get_stat(name, stype)
-            self.root.after(0, lambda: self.stat_result.configure(text=f"{name} = {v}"))
+            self._safe_after(lambda: self.stat_result.configure(text=f"{name} = {v}"))
 
         threading.Thread(target=_do, daemon=True).start()
 
