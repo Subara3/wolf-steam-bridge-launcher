@@ -1,0 +1,36 @@
+name: build-gui-pyinstaller
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'steam_bridge_gui.py'
+      - 'requirements.txt'
+      - '.github/workflows/build-gui-pyinstaller.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build exe
+        run: |
+          pyinstaller --noconfirm --onefile --windowed --name WOLF-Steam-Bridge-GUI steam_bridge_gui.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WOLF-Steam-Bridge-GUI-win
+          path: dist/WOLF-Steam-Bridge-GUI.exe

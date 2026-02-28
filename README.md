@@ -44,6 +44,15 @@ unlock ACH_TEST_01
 3. Actions → `build-win32` → Run workflow
 4. Artifact `SteamBridgeLauncher-win32` から exe を取得
 
+## GUI版（PyInstaller）
+- `steam_bridge_gui.py` はGUIで `Game.exe` 起動 + `steam_cmd` 監視 + 実績解除を行う版
+- コマンド形式は `unlock ACH_ID`
+- `steam_api.dll` は exe と同じフォルダに置くこと
+
+### GUI版のビルド済みexe取得
+- GitHub Actions: `build-gui-pyinstaller`
+- 実行後、Artifact `WOLF-Steam-Bridge-GUI-win` から `WOLF-Steam-Bridge-GUI.exe` を取得
+
 ## 注意
 - 実績ID(`ACH_TEST_01`など)はSteamworks管理画面で定義済みであること
 - Steamクライアント経由起動が基本
