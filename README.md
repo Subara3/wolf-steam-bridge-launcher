@@ -2,6 +2,8 @@
 
 WOLF本体にSteamworksを直接組み込まず、外部ランチャー(EXE)でSteam実績・統計を処理するブリッジです。
 
+> **プログラミング不要の導入ガイドは [GUIDE.md](GUIDE.md) をご覧ください。**
+
 ## 方式
 - `SteamBridgeLauncher.exe`（またはGUI版）を Steam の起動EXEに設定
 - ランチャーが `Game.exe` を起動
