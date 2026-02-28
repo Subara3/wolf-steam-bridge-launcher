@@ -1,1 +1,2 @@
 pyinstaller==6.15.0
+windnd>=1.0.7

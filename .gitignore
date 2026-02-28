@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+dist/
+build/
+*.spec
+
+# App runtime
+steam_bridge_config.json
+steam_bridge.log
+steam_cmd/
+
+# IDE
+.vscode/
+.idea/
