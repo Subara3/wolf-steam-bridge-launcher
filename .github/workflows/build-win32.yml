@@ -1,0 +1,47 @@
+name: build-win32
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Steamworks SDK from secret
+        shell: pwsh
+        run: |
+          if (-not $env:STEAMWORKS_SDK_ZIP_BASE64) {
+            throw "Missing secret STEAMWORKS_SDK_ZIP_BASE64"
+          }
+          [IO.File]::WriteAllBytes("steamworks_sdk.zip", [Convert]::FromBase64String($env:STEAMWORKS_SDK_ZIP_BASE64))
+          Expand-Archive steamworks_sdk.zip -DestinationPath . -Force
+          if (-not (Test-Path "steamworks_sdk")) {
+            throw "steamworks_sdk folder not found after unzip"
+          }
+        env:
+          STEAMWORKS_SDK_ZIP_BASE64: ${{ secrets.STEAMWORKS_SDK_ZIP_BASE64 }}
+
+      - name: Build x86 exe
+        shell: pwsh
+        run: |
+          $vcvars = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+          if (-not (Test-Path $vcvars)) {
+            $vcvars = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars32.bat"
+          }
+          if (-not (Test-Path $vcvars)) {
+            $vcvars = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat"
+          }
+          if (-not (Test-Path $vcvars)) { throw "vcvars32.bat not found" }
+
+          cmd /c "\"$vcvars\" && cl /EHsc /std:c++17 /I steamworks_sdk\public SteamBridgeLauncher.cpp /link /LIBPATH:steamworks_sdk\redistributable_bin\win32 steam_api.lib /SUBSYSTEM:WINDOWS /OUT:SteamBridgeLauncher.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SteamBridgeLauncher-win32
+          path: |
+            SteamBridgeLauncher.exe
+            steamworks_sdk/redistributable_bin/win32/steam_api.dll
