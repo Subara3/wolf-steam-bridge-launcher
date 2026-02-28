@@ -29,12 +29,12 @@
 
 ```mermaid
 flowchart TD
-    A["Game.exe\n(ウディタ製ゲーム)"]
+    A["Game.exe<br>(ウディタ製ゲーム)"]
     B["WOLF-Steam-Bridge-GUI.exe"]
     C["Steam"]
 
-    A -- "steam_cmd/ に\nテキストファイルを書き出し" --> B
-    B -- "Steam API で\n実績解除・統計記録" --> C
+    A -- "steam_cmd/ に<br>テキストファイルを書き出し" --> B
+    B -- "Steam API で<br>実績解除・統計記録" --> C
 
     style A fill:#4a6fa5,color:#fff,stroke:#2d4a7a
     style B fill:#e07b39,color:#fff,stroke:#b5612b
