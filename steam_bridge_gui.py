@@ -28,6 +28,7 @@ class SteamFlatAPI:
         self.dll = None
         self.user_stats = None
         self.dry_run = dry_run
+        self._lock = threading.Lock()
 
     def init(self) -> bool:
         if self.dry_run:
@@ -99,8 +100,9 @@ class SteamFlatAPI:
         return True
 
     def run_callbacks(self):
-        if self.dll:
-            self.dll.SteamAPI_RunCallbacks()
+        with self._lock:
+            if self.dll:
+                self.dll.SteamAPI_RunCallbacks()
 
     # -- Achievements --
 
@@ -108,16 +110,17 @@ class SteamFlatAPI:
         if self.dry_run:
             self.log(f"[DRY RUN] unlock: {ach_id}")
             return True
-        if not self.dll or not self.user_stats:
-            return False
-        ok = self.dll.SteamAPI_ISteamUserStats_SetAchievement(self.user_stats, ach_id.encode("utf-8"))
-        if not ok:
-            self.log(f"SetAchievement failed: {ach_id}")
-            return False
-        ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
-        if not ok:
-            self.log(f"StoreStats failed: {ach_id}")
-            return False
+        with self._lock:
+            if not self.dll or not self.user_stats:
+                return False
+            ok = self.dll.SteamAPI_ISteamUserStats_SetAchievement(self.user_stats, ach_id.encode("utf-8"))
+            if not ok:
+                self.log(f"SetAchievement failed: {ach_id}")
+                return False
+            ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
+            if not ok:
+                self.log(f"StoreStats failed: {ach_id}")
+                return False
         self.log(f"Achievement unlocked: {ach_id}")
         return True
 
@@ -125,16 +128,17 @@ class SteamFlatAPI:
         if self.dry_run:
             self.log(f"[DRY RUN] clear: {ach_id}")
             return True
-        if not self.dll or not self.user_stats:
-            return False
-        ok = self.dll.SteamAPI_ISteamUserStats_ClearAchievement(self.user_stats, ach_id.encode("utf-8"))
-        if not ok:
-            self.log(f"ClearAchievement failed: {ach_id}")
-            return False
-        ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
-        if not ok:
-            self.log(f"StoreStats failed after clear: {ach_id}")
-            return False
+        with self._lock:
+            if not self.dll or not self.user_stats:
+                return False
+            ok = self.dll.SteamAPI_ISteamUserStats_ClearAchievement(self.user_stats, ach_id.encode("utf-8"))
+            if not ok:
+                self.log(f"ClearAchievement failed: {ach_id}")
+                return False
+            ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
+            if not ok:
+                self.log(f"StoreStats failed after clear: {ach_id}")
+                return False
         self.log(f"Achievement cleared: {ach_id}")
         return True
 
@@ -143,20 +147,21 @@ class SteamFlatAPI:
         if self.dry_run:
             self.log("[DRY RUN] get_all_achievements → sample data")
             return [("ACH_SAMPLE_01", False), ("ACH_SAMPLE_02", True)]
-        if not self.dll or not self.user_stats:
-            return []
-        n = self.dll.SteamAPI_ISteamUserStats_GetNumAchievements(self.user_stats)
-        result = []
-        for i in range(n):
-            raw = self.dll.SteamAPI_ISteamUserStats_GetAchievementName(self.user_stats, i)
-            if not raw:
-                continue
-            name = raw.decode("utf-8", errors="replace")
-            achieved = ctypes.c_bool(False)
-            self.dll.SteamAPI_ISteamUserStats_GetAchievement(
-                self.user_stats, name.encode("utf-8"), ctypes.byref(achieved)
-            )
-            result.append((name, achieved.value))
+        with self._lock:
+            if not self.dll or not self.user_stats:
+                return []
+            n = self.dll.SteamAPI_ISteamUserStats_GetNumAchievements(self.user_stats)
+            result = []
+            for i in range(n):
+                raw = self.dll.SteamAPI_ISteamUserStats_GetAchievementName(self.user_stats, i)
+                if not raw:
+                    continue
+                name = raw.decode("utf-8", errors="replace")
+                achieved = ctypes.c_bool(False)
+                self.dll.SteamAPI_ISteamUserStats_GetAchievement(
+                    self.user_stats, name.encode("utf-8"), ctypes.byref(achieved)
+                )
+                result.append((name, achieved.value))
         return result
 
     # -- Stats --
@@ -165,20 +170,21 @@ class SteamFlatAPI:
         if self.dry_run:
             self.log(f"[DRY RUN] set_stat {name}={value} ({stat_type})")
             return True
-        if not self.dll or not self.user_stats:
-            return False
-        encoded = name.encode("utf-8")
-        if stat_type == "float":
-            ok = self.dll.SteamAPI_ISteamUserStats_SetStatFloat(self.user_stats, encoded, ctypes.c_float(float(value)))
-        else:
-            ok = self.dll.SteamAPI_ISteamUserStats_SetStatInt32(self.user_stats, encoded, ctypes.c_int32(int(value)))
-        if not ok:
-            self.log(f"SetStat failed: {name}")
-            return False
-        ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
-        if not ok:
-            self.log(f"StoreStats failed after SetStat: {name}")
-            return False
+        with self._lock:
+            if not self.dll or not self.user_stats:
+                return False
+            encoded = name.encode("utf-8")
+            if stat_type == "float":
+                ok = self.dll.SteamAPI_ISteamUserStats_SetStatFloat(self.user_stats, encoded, ctypes.c_float(float(value)))
+            else:
+                ok = self.dll.SteamAPI_ISteamUserStats_SetStatInt32(self.user_stats, encoded, ctypes.c_int32(int(value)))
+            if not ok:
+                self.log(f"SetStat failed: {name}")
+                return False
+            ok = self.dll.SteamAPI_ISteamUserStats_StoreStats(self.user_stats)
+            if not ok:
+                self.log(f"StoreStats failed after SetStat: {name}")
+                return False
         self.log(f"Stat set: {name}={value} ({stat_type})")
         return True
 
@@ -186,18 +192,19 @@ class SteamFlatAPI:
         if self.dry_run:
             self.log(f"[DRY RUN] get_stat {name} ({stat_type}) → 0")
             return 0
-        if not self.dll or not self.user_stats:
-            return None
-        encoded = name.encode("utf-8")
-        if stat_type == "float":
-            val = ctypes.c_float(0)
-            ok = self.dll.SteamAPI_ISteamUserStats_GetStatFloat(self.user_stats, encoded, ctypes.byref(val))
-        else:
-            val = ctypes.c_int32(0)
-            ok = self.dll.SteamAPI_ISteamUserStats_GetStatInt32(self.user_stats, encoded, ctypes.byref(val))
-        if not ok:
-            self.log(f"GetStat failed: {name}")
-            return None
+        with self._lock:
+            if not self.dll or not self.user_stats:
+                return None
+            encoded = name.encode("utf-8")
+            if stat_type == "float":
+                val = ctypes.c_float(0)
+                ok = self.dll.SteamAPI_ISteamUserStats_GetStatFloat(self.user_stats, encoded, ctypes.byref(val))
+            else:
+                val = ctypes.c_int32(0)
+                ok = self.dll.SteamAPI_ISteamUserStats_GetStatInt32(self.user_stats, encoded, ctypes.byref(val))
+            if not ok:
+                self.log(f"GetStat failed: {name}")
+                return None
         self.log(f"Stat get: {name}={val.value} ({stat_type})")
         return val.value
 
@@ -300,6 +307,7 @@ class App:
         self.dry_run = tk.BooleanVar(value=cfg.get("dry_run", False))
 
         self.running = False
+        self._closing = False
         self.worker = None
         self.steam = None  # created at start
 
@@ -443,7 +451,12 @@ class App:
         except Exception:
             pass
         # GUI update via root.after for thread safety
-        self.root.after(0, self._append_log, line, msg)
+        if self._closing:
+            return
+        try:
+            self.root.after(0, self._append_log, line, msg)
+        except tk.TclError:
+            pass
 
     def _append_log(self, line: str, raw_msg: str):
         # Determine tag
@@ -510,7 +523,13 @@ class App:
 
         self.steam = SteamFlatAPI(self.log, dry_run=dry)
         if not self.steam.init():
-            messagebox.showerror("Steam", "Steam API init failed. Launch from Steam and place steam_api.dll next to this app.")
+            messagebox.showerror(
+                "Steam",
+                "Steam API init failed.\n\n"
+                "1. steam_api.dll (32bit/win32) をこの exe と同じフォルダに置いてください\n"
+                "2. Steam クライアントにログインした状態で起動してください\n"
+                "3. 開発中は steam_appid.txt (中身=App ID) も必要です",
+            )
             return
 
         # Save config
@@ -535,7 +554,14 @@ class App:
         proc = None
         if not dry:
             self.log(f"Launch game: {exe}")
-            proc = subprocess.Popen([exe])
+            try:
+                proc = subprocess.Popen([exe])
+            except Exception as e:
+                self.log(f"Game launch failed: {e}")
+                self.running = False
+                if self.steam:
+                    self.steam.shutdown()
+                return
         else:
             self.log("[DRY RUN] Game launch skipped — file watcher only")
 
@@ -693,6 +719,12 @@ class App:
         val = self.stat_value.get().strip()
         if not name or not val:
             return
+        # Validate numeric value before spawning thread
+        try:
+            float(val) if stype == "float" else int(val)
+        except ValueError:
+            messagebox.showerror("Input Error", f"'{val}' is not a valid {stype} value.")
+            return
 
         def _do():
             self.steam.set_stat(name, val, stype)
@@ -746,7 +778,11 @@ class App:
             "cmd_dir": self.cmd_dir.get(),
             "dry_run": self.dry_run.get(),
         })
+        self._closing = True
         self._stop()
+        # Wait for worker thread to finish (up to 1s) before destroying UI
+        if self.worker and self.worker.is_alive():
+            self.worker.join(timeout=1.0)
         self.root.destroy()
 
 
